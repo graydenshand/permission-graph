@@ -1,6 +1,6 @@
 import abc
 
-from permission_graph.structs import EdgeType, Resource, User, Vertex
+from permission_graph.structs import Actor, EdgeType, Resource, Vertex
 
 
 class PermissionGraphBackend(abc.ABC):

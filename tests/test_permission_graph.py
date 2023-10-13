@@ -2,8 +2,9 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from permission_graph import (Action, EdgeType, Group, PermissionGraph,
-                              Resource, ResourceType, User)
+from permission_graph import PermissionGraph
+from permission_graph.structs import (Action, Actor, EdgeType, Group, Resource,
+                                      ResourceType)
 
 
 @pytest.fixture
@@ -18,18 +19,18 @@ def graph(mock_backend):
 
 
 @pytest.mark.unit
-def test_add_user(graph):
+def test_add_actor(graph):
     graph.backend.vertex_exists.side_effect = [False, True]
-    user = User("Alice")
-    graph.add_user(user)
-    assert graph.backend.add_vertex.called_once_with(vertex=user)
+    actor = Actor("Alice")
+    graph.add_actor(actor)
+    assert graph.backend.add_vertex.called_once_with(vertex=actor)
 
 
 @pytest.mark.unit
-def test_remove_user(graph):
-    user = User("Alice")
-    graph.remove_user(user)
-    assert graph.backend.remove_vertex.called_once_with(vertex=user)
+def test_remove_actor(graph):
+    actor = Actor("Alice")
+    graph.remove_actor(actor)
+    assert graph.backend.remove_vertex.called_once_with(vertex=actor)
 
 
 @pytest.mark.unit
@@ -68,23 +69,23 @@ def test_remove_group(graph):
 
 
 @pytest.mark.unit
-def test_add_user_to_group(graph):
-    alice = User("Alice")
+def test_add_actor_to_group(graph):
+    alice = Actor("Alice")
     group = Group("Admins")
-    graph.add_user_to_group(alice, group)
+    graph.add_actor_to_group(alice, group)
     graph.backend.add_edge.assert_called_once_with(EdgeType.MEMBER_OF, source=alice, target=group)
 
 
 @pytest.mark.unit
-def test_remove_user_from_group(graph):
-    alice = User("Alice")
+def test_remove_actor_from_group(graph):
+    alice = Actor("Alice")
     admins = Group("Admins")
-    graph.remove_user_from_group(alice, admins)
+    graph.remove_actor_from_group(alice, admins)
 
 
 @pytest.mark.unit
 def test_allow(graph):
-    alice = User("Alice")
+    alice = Actor("Alice")
     foo = Resource("foo", ResourceType("Foo", ["bar"]))
     bar = Action("bar", foo)
     graph.allow(alice, bar)
@@ -93,7 +94,7 @@ def test_allow(graph):
 
 @pytest.mark.unit
 def test_deny(graph):
-    alice = User("Alice")
+    alice = Actor("Alice")
     foo = Resource("foo", ResourceType("Foo", ["bar"]))
     bar = Action("bar", foo)
     graph.deny(alice, bar)
@@ -102,7 +103,7 @@ def test_deny(graph):
 
 @pytest.mark.unit
 def test_revoke(graph):
-    alice = User("Alice")
+    alice = Actor("Alice")
     foo = Resource("foo", ResourceType("Foo", ["bar"]))
     bar = Action("bar", foo)
     graph.revoke(alice, bar)

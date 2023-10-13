@@ -1,4 +1,5 @@
-from permission_graph.backends import IGraphMemoryBackend
+from importlib.metadata import version
+
+__version__ = version("permission_graph")
+
 from permission_graph.permission_graph import PermissionGraph
-from permission_graph.structs import (Action, EdgeType, Group, Resource,
-                                      ResourceType, TieBreakerPolicy, User)

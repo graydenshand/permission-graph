@@ -32,8 +32,8 @@ class Vertex:
         return self.vertex_id == other.vertex_id
 
 
-class User(Vertex):
-    vtype = "user"
+class Actor(Vertex):
+    vtype = "actor"
 
 
 class Group(Vertex):
@@ -67,7 +67,7 @@ class Action(Vertex):
 
 
 def vertex_factory(vtype: str, vertex_id: str):
-    vtype_map = {"user": User, "resource": Resource, "action": Action, "group": Group}
+    vtype_map = {"actor": Actor, "resource": Resource, "action": Action, "group": Group}
     return vtype_map[vtype].from_vertex_id(vertex_id)
 
 

@@ -1,7 +1,7 @@
 
 [project]
 name = "permission-graph"
-version = "0.1.0"
+dynamic = ["version"]
 description = "A graph based authorization library"
 authors = [
     {name = "Grayden Shand", email = "graydenshand@gmail.com"},
@@ -11,7 +11,13 @@ dependencies = [
 ]
 requires-python = ">=3.11"
 readme = "README.md"
-license = {text = "MIT"}
+license = {file = "LICENSE"}
+
+[tool.pdm]
+version.source = "scm"
+
+[project.urls]
+Respository = "https://github.com/graydenshand/permission-graph/"
 
 [build-system]
 requires = ["pdm-backend"]
@@ -22,10 +28,14 @@ dev = [
     "pytest>=7.4.2",
     "black>=23.9.1",
     "isort>=5.12.0",
+    "mkdocs>=1.5.3",
+    "mkdocs-material>=9.4.5",
+    "twine>=4.0.2",
 ]
 
 [tool.pdm.scripts]
 format.shell = "black . && isort ."
+publish.shell = "pdm build && python -m twine upload dist/*"
 
 [tool.ruff]
 line-length = 120

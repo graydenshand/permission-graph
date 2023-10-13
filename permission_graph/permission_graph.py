@@ -1,6 +1,6 @@
-from permission_graph.backends import PermissionGraphBackend
-from permission_graph.structs import (Action, EdgeType, Group, Resource,
-                                      ResourceType, TieBreakerPolicy, User)
+from permission_graph.backends.base import PermissionGraphBackend
+from permission_graph.structs import (Action, Actor, EdgeType, Group, Resource,
+                                      ResourceType, TieBreakerPolicy, Vertex)
 
 
 class PermissionGraph:
@@ -12,13 +12,13 @@ class PermissionGraph:
         self.backend = backend
         self.tie_breaker_policy = tie_breaker_policy
 
-    def add_user(self, user: User) -> None:
-        """Add a user to the permission graph."""
-        self.backend.add_vertex(user)
+    def add_actor(self, actor: Actor) -> None:
+        """Add a actor to the permission graph."""
+        self.backend.add_vertex(actor)
 
-    def remove_user(self, user: User) -> None:
-        """Remove a user from the permission graph."""
-        self.backend.remove_vertex(user)
+    def remove_actor(self, actor: Actor) -> None:
+        """Remove a actor from the permission graph."""
+        self.backend.remove_vertex(actor)
 
     def register_resource_type(self, resource_type: ResourceType):
         """Register a resource type."""
@@ -55,47 +55,64 @@ class PermissionGraph:
         """Remove a group from the permission graph."""
         self.backend.remove_vertex(group)
 
-    def allow(self, actor: User | Group | Action, action: Action):
-        """Grant user or group permission to take action on resource or group."""
+    def allow(self, actor: Actor | Group | Action, action: Action):
+        """Grant actor or group permission to take action on resource or group."""
         self.backend.add_edge(EdgeType.ALLOW, source=actor, target=action)
 
-    def deny(self, actor: User | Group | Action, action: Action):
-        """Deny user or group permission to take action on resource or group."""
+    def deny(self, actor: Actor | Group | Action, action: Action):
+        """Deny actor or group permission to take action on resource or group."""
         self.backend.add_edge(EdgeType.DENY, source=actor, target=action)
 
-    def revoke(self, actor: User | Group | Action, action: Action):
+    def revoke(self, actor: Actor | Group | Action, action: Action):
         """Revoke a permission (either allow or deny)."""
         self.backend.remove_edge(actor, action)
 
-    def add_user_to_group(self, user: User, group: Group):
-        """Add a user to a group."""
-        self.backend.add_edge(EdgeType.MEMBER_OF, source=user, target=group)
+    def add_actor_to_group(self, actor: Actor, group: Group):
+        """Add a actor to a group."""
+        self.backend.add_edge(EdgeType.MEMBER_OF, source=actor, target=group)
 
-    def remove_user_from_group(self, user: User, group: Group):
-        """Remove a user from a group."""
-        self.backend.remove_edge(source=user, target=group)
+    def remove_actor_from_group(self, actor: Actor, group: Group):
+        """Remove a actor from a group."""
+        self.backend.remove_edge(source=actor, target=group)
 
-    def describe_user_permissions(self, user: User):
-        """Describe a user's permissions."""
+    def describe_actor_permissions(self, actor: Actor):
+        """Describe a actor's permissions."""
         raise NotImplementedError
 
     def describe_resource_permissions(self, resource: Resource):
         """Describe a resource's permissions."""
         raise NotImplementedError
 
-    def action_is_authorized(self, user: User, action: str) -> bool:
-        """Authorize user to perform action on resource."""
-        shortest_paths = self.backend.shortest_paths(user, action)
+    def _path_allows_action(self, path: list[Vertex]) -> bool:
+        """Returns True if a path from actor to action is allowed.
+
+        For a path to be allowed, the path must contain an "ALLOW" edge, and
+        no "DENY" edges.
+        """
+        allow_edge_found = False
+        for i in range(len(path) - 1):
+            edge_type = self.backend.get_edge_type(path[i], path[i + 1])
+            match edge_type:
+                case EdgeType.MEMBER_OF:
+                    continue
+                case EdgeType.DENY:
+                    return False
+                case EdgeType.ALLOW:
+                    allow_edge_found = True
+        return allow_edge_found
+
+    def action_is_authorized(self, actor: Actor, action: str) -> bool:
+        """Authorize actor to perform action on resource."""
+        shortest_paths = self.backend.shortest_paths(actor, action)
         if len(shortest_paths) == 0:
             return False
         elif len(shortest_paths) == 1:
             shortest_path = shortest_paths[0]
-            return self.backend.get_edge_type(shortest_path[-2], shortest_path[-1]) == EdgeType.ALLOW
+            return self._path_allows_action(shortest_path)
         else:
-            # Tie breaker: allow access if there are any ALLOW statements
             match self.tie_breaker_policy:
                 case TieBreakerPolicy.ANY_ALLOW:
                     policy = any
                 case TieBreakerPolicy.ALL_ALLOW:
                     policy = all
-            return policy(self.backend.get_edge_type(path[-2], path[-1]) == EdgeType.ALLOW for path in shortest_paths)
+            return policy(self._path_allows_action(path) for path in shortest_paths)

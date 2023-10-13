@@ -1,0 +1,16 @@
+site_name: PermissionGraph
+theme:
+  name: material
+  features:
+    - content.code.copy
+    - content.code.annotate
+    - content.tabs.link
+
+markdown_extensions:
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.tabbed:
+      alternate_style: true

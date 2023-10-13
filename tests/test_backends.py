@@ -1,8 +1,9 @@
 import pytest
 
-from permission_graph import EdgeType, Group, Resource, ResourceType, User
-from permission_graph.backends import (IGraphMemoryBackend,
-                                       PermissionGraphBackend)
+from permission_graph.backends.base import PermissionGraphBackend
+from permission_graph.backends.igraph import IGraphMemoryBackend
+from permission_graph.structs import (Action, Actor, EdgeType, Group, Resource,
+                                      ResourceType)
 
 
 @pytest.mark.integration
@@ -11,41 +12,42 @@ def test_backend(backend: PermissionGraphBackend):
     """A simple test that any valid backend should pass."""
 
     # Add a vertex to the graph
-    user = User("Alice")
-    backend.add_vertex(user)
-    assert backend.vertex_exists(user)
+    actor = Actor("Alice")
+    backend.add_vertex(actor)
+    assert backend.vertex_exists(actor)
 
     # Vertexes are unique
     with pytest.raises(ValueError):
-        backend.add_vertex(user)
+        backend.add_vertex(actor)
 
     # Add a second vertex and an edge between it and the first
     group = Group("Admins")
     backend.add_vertex(group)
     with pytest.raises(ValueError):
-        backend.get_edge_type(user, group)
+        backend.get_edge_type(actor, group)
 
-    backend.add_edge(EdgeType.MEMBER_OF, user, group)
-    assert backend.edge_exists(user, group)
-    assert backend.get_vertices_to(group) == [user]
-    assert backend.get_edge_type(user, group) == EdgeType.MEMBER_OF
+    backend.add_edge(EdgeType.MEMBER_OF, actor, group)
+    assert backend.edge_exists(actor, group)
+    assert backend.get_vertices_to(group) == [actor]
+    assert backend.get_edge_type(actor, group) == EdgeType.MEMBER_OF
 
     # Edges are unique
     with pytest.raises(ValueError):
-        backend.add_edge(EdgeType.MEMBER_OF, user, group)
+        backend.add_edge(EdgeType.MEMBER_OF, actor, group)
 
-    # Add third vertex and two edges
+    # Add more vertices and edges
     resource = Resource("foo", ResourceType("Foo", ["bar"]))
-    backend.add_vertex(resource)
-    backend.add_edge(EdgeType.DENY, group, resource)
-    backend.add_edge(EdgeType.ALLOW, user, resource)
-
-    assert backend.shortest_path(user, resource) == [user, resource]
+    action = Action("bar", resource)
+    backend.add_vertex(action)
+    backend.add_edge(EdgeType.DENY, group, action)
+    backend.add_edge(EdgeType.ALLOW, actor, action)
+    assert backend.shortest_paths(actor, action) == [[actor, action]]
+    assert backend.get_edge_type(actor, action) == EdgeType.ALLOW
 
     # Remove an edge
-    backend.remove_edge(user, group)
-    assert not backend.edge_exists(user, group)
+    backend.remove_edge(actor, group)
+    assert not backend.edge_exists(actor, group)
 
     # Remove a vertex
-    backend.remove_vertex(user)
-    assert not backend.vertex_exists(user)
+    backend.remove_vertex(actor)
+    assert not backend.vertex_exists(actor)

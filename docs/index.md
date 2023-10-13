@@ -25,7 +25,7 @@ grant her full access to the document "abcd.csv".
     ```
 
 === "Python"
-    ```python 
+    ```python
     from permission_graph import (
         PermissionGraph,
         Actor,
@@ -58,7 +58,9 @@ grant her full access to the document "abcd.csv".
     pg.allow(alice, Action("ViewDocument", document))
     pg.allow(alice, Action("EditDocument", document))
     pg.allow(alice, Action("ShareDocument", document))
+    assert False
     ```
+
 
 First, an empty `PermissionGraph` is created, using the default in-memory 
 backend built on igraph.
@@ -83,7 +85,7 @@ unless explicitly granted.
 When it is time to authorize an Actor to perform some Action, the 
 `action_is_authorized` method can be used.
 
-```python
+```pycon
 >>> pg.action_is_authorized(alice, Action("ShareDocument", document))
 True
 ```

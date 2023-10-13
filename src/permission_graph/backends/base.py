@@ -1,4 +1,5 @@
 import abc
+from typing import Any
 
 from permission_graph.structs import Actor, EdgeType, Resource, Vertex
 
@@ -26,14 +27,14 @@ class PermissionGraphBackend(abc.ABC):
         """Get all vertices that target a vertex."""
 
     @abc.abstractmethod
-    def add_edge(self, etype: str, source: Vertex, target: Vertex, **kwargs) -> None:
+    def add_edge(self, etype: str, source: Vertex, target: Vertex, **kwargs: Any) -> None:
         """Add a edge to the permission graph.
 
         Args:
-            - etype: edge type (one of 'member_of', 'allow', 'deny')
-            - source: source vertex
-            - target: target vertex
-            - **kwargs: addition attributes to add to edge
+            etype: edge type (one of 'member_of', 'allow', 'deny')
+            source: source vertex
+            target: target vertex
+            **kwargs: addition attributes to add to edge
 
         Raises ValueError if an edge from source to target already exists.
         """

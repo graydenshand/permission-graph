@@ -2,9 +2,9 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from permission_graph import PermissionGraph
-from permission_graph.structs import (Action, Actor, EdgeType, Group, Resource,
-                                      ResourceType)
+from src.permission_graph import PermissionGraph
+from src.permission_graph.structs import (Action, Actor, EdgeType, Group,
+                                          Resource, ResourceType)
 
 
 @pytest.fixture

@@ -14,6 +14,7 @@ The permissions graph consists of Vertices and Edges.
 * `Group`: a named collection of `Users`
 * `Action`: an action on a resource
 
+
 **Edges**
 
 * `MemberOf`: indicates membership in a collection
@@ -22,9 +23,17 @@ The permissions graph consists of Vertices and Edges.
 * `Allow`: indicates positive permission to act on a resource
     - `User -> Allow -> Action`
     - `Group -> Allow -> Action`
+    - `Action -> Allow -> Action`
 * `Deny`: indicates negative permission to act on a resource
     - `User -> Deny -> Action`
     - `Group -> Deny -> Action`
+    - `Action -> Deny -> Action`
+
+```mermaid
+flowchart
+    User -->|MemberOf|Group -->|Deny| Action -->|MemberOf| Resource
+    User -->|Allow| Action -->|Allow| Action2 -->|MemberOf| Resource2
+```
 
 ### Authorizing Access
 

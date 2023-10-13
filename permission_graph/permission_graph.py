@@ -55,17 +55,17 @@ class PermissionGraph:
         """Remove a group from the permission graph."""
         self.backend.remove_vertex(group)
 
-    def allow(self, user_or_group: User | Group, action: Action):
+    def allow(self, actor: User | Group | Action, action: Action):
         """Grant user or group permission to take action on resource or group."""
-        self.backend.add_edge(EdgeType.ALLOW, source=user_or_group, target=action)
+        self.backend.add_edge(EdgeType.ALLOW, source=actor, target=action)
 
-    def deny(self, user_or_group: User | Group, action: Action):
+    def deny(self, actor: User | Group | Action, action: Action):
         """Deny user or group permission to take action on resource or group."""
-        self.backend.add_edge(EdgeType.DENY, source=user_or_group, target=action)
+        self.backend.add_edge(EdgeType.DENY, source=actor, target=action)
 
-    def revoke(self, user_or_group: User | Group, action: Action):
+    def revoke(self, actor: User | Group | Action, action: Action):
         """Revoke a permission (either allow or deny)."""
-        self.backend.remove_edge(user_or_group, action)
+        self.backend.remove_edge(actor, action)
 
     def add_user_to_group(self, user: User, group: Group):
         """Add a user to a group."""

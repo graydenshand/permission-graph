@@ -26,8 +26,20 @@ def test_system(graph):
     graph.add_resource(document)
 
     view_document = Action("View", document)
-    graph.deny(admins, view_document)
     assert not graph.action_is_authorized(alice, view_document)
 
-    graph.allow(alice, view_document)
+    graph.allow(admins, view_document)
+    assert graph.action_is_authorized(alice, view_document)
+
+    graph.deny(alice, view_document)
+    assert not graph.action_is_authorized(alice, view_document)
+
+    graph.revoke(alice, view_document)
+    assert graph.action_is_authorized(alice, view_document)
+
+    # Conflicting dependencies
+    public = Group("Public")
+    graph.add_group(public)
+    graph.add_user_to_group(alice, public)
+    graph.deny(public, view_document)
     assert graph.action_is_authorized(alice, view_document)

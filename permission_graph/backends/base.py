@@ -51,8 +51,15 @@ class PermissionGraphBackend(abc.ABC):
         """Remove an edge from the permission graph."""
 
     @abc.abstractmethod
-    def shortest_path(self, source: Vertex, target: Vertex) -> list[Vertex]:
-        """Return the list of vertices that make the shortest path from source to target."""
+    def shortest_paths(self, source: Vertex, target: Vertex) -> list[list[Vertex]]:
+        """Return the lists of vertices that make the shortest paths from source to target.
+
+        Returns:
+            - If there is a true shortest path (no ties), return a list containing one element
+                (the shortest path).
+            - Otherwise, return a list containing all of the paths with length equal to the
+                shortest path.
+        """
 
     @abc.abstractmethod
     def get_edge_type(self, source: Vertex, target: Vertex) -> EdgeType:

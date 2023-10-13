@@ -82,8 +82,15 @@ class PermissionGraph:
 
     def action_is_authorized(self, user: User, action: str) -> bool:
         """Authorize user to perform action on resource."""
-        shortest_path = self.backend.shortest_path(user, action)
-        if len(shortest_path) == 0:
+        shortest_paths = self.backend.shortest_paths(user, action)
+        if len(shortest_paths) == 0:
             return False
-        else:
+        elif len(shortest_paths) == 1:
+            shortest_path = shortest_paths[0]
             return self.backend.get_edge_type(shortest_path[-2], shortest_path[-1]) == EdgeType.ALLOW
+        else:
+            # Tie breaker: allow access if there are any ALLOW statements
+            for path in shortest_paths:
+                if self.backend.get_edge_type(path[-2], path[-1]) == EdgeType.ALLOW:
+                    return True
+            return False

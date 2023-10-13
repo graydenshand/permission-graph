@@ -62,14 +62,17 @@ class IGraphMemoryBackend(PermissionGraphBackend):
         if e is not None:
             self.g.delete_edges(e.index)
 
-    def shortest_path(self, source: Vertex, target: Vertex) -> list[Vertex]:
+    def shortest_paths(self, source: Vertex, target: Vertex) -> list[list[Vertex]]:
         v1 = self._get_vertex(source)
         v2 = self._get_vertex(target)
-        path = self.g.get_shortest_path(v1, v2)
+        paths = self.g.get_all_shortest_paths(v1, v2)
         output = []
-        for index in path:
-            v = self.g.vs[index]
-            output.append(vertex_factory(v["vtype"], v["name"]))
+        for path in paths:
+            vertex_path = []
+            for index in path:
+                v = self.g.vs[index]
+                vertex_path.append(vertex_factory(v["vtype"], v["name"]))
+            output.append(vertex_path)
         return output
 
     def get_edge_type(self, source: Vertex, target: Vertex) -> EdgeType:

@@ -9,8 +9,8 @@ nav = mkdocs_gen_files.Nav()
 SRC_DIR = Path("src")
 
 for path in sorted(SRC_DIR.rglob("*.py")):
-    module_path = SRC_DIR / path.relative_to(SRC_DIR).with_suffix("")
-    doc_path = SRC_DIR / path.relative_to(SRC_DIR).with_suffix(".md")
+    module_path = path.relative_to(SRC_DIR).with_suffix("")
+    doc_path = path.relative_to(SRC_DIR).with_suffix(".md")
     full_doc_path = Path("reference", doc_path)
 
     parts = list(module_path.parts)

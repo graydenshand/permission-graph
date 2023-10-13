@@ -25,7 +25,10 @@ plugins:
   - gen-files:
       scripts:
         - docs/gen_ref_pages.py
-  - mkdocstrings
+  - mkdocstrings:
+      handlers:
+        python:
+          paths: [src]  # search packages in the src folder
   - literate-nav:
       nav_file: SUMMARY.md
   - section-index

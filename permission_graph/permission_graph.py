@@ -1,13 +1,16 @@
 from permission_graph.backends import PermissionGraphBackend
 from permission_graph.structs import (Action, EdgeType, Group, Resource,
-                                      ResourceType, User, Vertex)
+                                      ResourceType, TieBreakerPolicy, User)
 
 
 class PermissionGraph:
-    def __init__(self, backend: PermissionGraphBackend) -> None:
+    def __init__(
+        self, backend: PermissionGraphBackend, tie_breaker_policy: TieBreakerPolicy = TieBreakerPolicy.ANY_ALLOW
+    ) -> None:
         """Initialize a new PermissionGraph."""
         self.resource_types = []
         self.backend = backend
+        self.tie_breaker_policy = tie_breaker_policy
 
     def add_user(self, user: User) -> None:
         """Add a user to the permission graph."""
@@ -90,7 +93,9 @@ class PermissionGraph:
             return self.backend.get_edge_type(shortest_path[-2], shortest_path[-1]) == EdgeType.ALLOW
         else:
             # Tie breaker: allow access if there are any ALLOW statements
-            for path in shortest_paths:
-                if self.backend.get_edge_type(path[-2], path[-1]) == EdgeType.ALLOW:
-                    return True
-            return False
+            match self.tie_breaker_policy:
+                case TieBreakerPolicy.ANY_ALLOW:
+                    policy = any
+                case TieBreakerPolicy.ALL_ALLOW:
+                    policy = all
+            return policy(self.backend.get_edge_type(path[-2], path[-1]) == EdgeType.ALLOW for path in shortest_paths)

@@ -2,10 +2,11 @@
 import pytest
 
 from permission_graph import (Action, EdgeType, Group, IGraphMemoryBackend,
-                              PermissionGraph, Resource, ResourceType, User)
+                              PermissionGraph, Resource, ResourceType,
+                              TieBreakerPolicy, User)
 
 ig_backend = IGraphMemoryBackend()
-ig_graph = PermissionGraph(backend=ig_backend)
+ig_graph = PermissionGraph(backend=ig_backend, tie_breaker_policy=TieBreakerPolicy.ANY_ALLOW)
 
 
 @pytest.mark.system

@@ -75,3 +75,8 @@ class EdgeType(Enum):
     ALLOW = "ALLOW"
     DENY = "DENY"
     MEMBER_OF = "MEMBER_OF"
+
+
+class TieBreakerPolicy(Enum):
+    ANY_ALLOW = "ANY_ALLOW"
+    ALL_ALLOW = "ALL_ALLOW"

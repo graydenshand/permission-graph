@@ -24,14 +24,19 @@ class PermissionGraphBackend(abc.ABC):
 
         Args:
             - etype: edge type (one of 'member_of', 'allow', 'deny')
-            - source: tuple of (vtype, id) for source vertex
-            - target: tuple of (vtype, id) for target vertex
+            - source: source vertex
+            - target: target vertex
+            - **kwargs: addition attributes to add to edge
         """
+
+    @abc.abstractmethod
+    def edge_exists(self, source: Vertex, target: Vertex) -> bool:
+        """Return True if edge exists."""
+
+    @abc.abstractmethod
+    def edge_exists(self, source: Vertex, target: Vertex) -> bool:
+        """Return True if edge exists."""
 
     @abc.abstractmethod
     def remove_edge(self, source: Vertex, target: Vertex) -> None:
         """Remove an edge from the permission graph."""
-
-    @abc.abstractmethod
-    def action_is_authorized(self, user: User, resource: Resource, action: str) -> bool:
-        """Authorize user to perform action on resource."""

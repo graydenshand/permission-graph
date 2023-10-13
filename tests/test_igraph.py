@@ -32,6 +32,6 @@ def test_igraph_add_member_to_group(graph):
     admins = Group("Admins")
     graph.add_group(admins)
     graph.add_user_to_group(alice, admins)
-    e = graph.backend.get_edge(alice, admins)
+    e = graph.backend._get_edge(alice, admins)
     assert e is not None
     assert e["etype"] == "MEMBER_OF"

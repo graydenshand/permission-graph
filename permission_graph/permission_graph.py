@@ -46,7 +46,7 @@ class PermissionGraph:
         self.backend.remove_vertex(group)
 
     def validate_edge(self, etype: EdgeType, source: User | Group, target: Group | Resource, **kwargs) -> None:
-        """Add a edge to the permission graph.
+        """Validate a new edge.
 
         Args:
             - etype: edge type (one of 'member_of', 'allow', 'deny')

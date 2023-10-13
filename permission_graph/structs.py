@@ -22,6 +22,9 @@ class Vertex:
     def vertex_id(self):
         return f"{self.vtype}:{self.id}"
 
+    def __eq__(self, other: object) -> bool:
+        return self.vertex_id == other.vertex_id
+
 
 class User(Vertex):
     vtype = "user"

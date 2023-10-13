@@ -8,7 +8,7 @@ from permission_graph.backends import (IGraphMemoryBackend,
 @pytest.mark.integration
 @pytest.mark.parametrize("backend", [IGraphMemoryBackend()])
 def test_backend(backend: PermissionGraphBackend):
-    """Test that all backends work as expected."""
+    """A simple test that any valid backend should pass."""
     user = User("Alice")
     backend.add_vertex(user)
     assert backend.vertex_exists(user)

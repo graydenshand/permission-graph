@@ -1,6 +1,6 @@
 import abc
 
-from permission_graph.structs import Resource, User, Vertex
+from permission_graph.structs import EdgeType, Resource, User, Vertex
 
 
 class PermissionGraphBackend(abc.ABC):
@@ -8,7 +8,10 @@ class PermissionGraphBackend(abc.ABC):
 
     @abc.abstractmethod
     def add_vertex(self, vertex: Vertex, **kwargs) -> None:
-        """Add a vertex to the permission graph."""
+        """Add a vertex to the permission graph.
+
+        Raises ValueError if vertex already exists.
+        """
 
     @abc.abstractmethod
     def remove_vertex(self, vertex: Vertex, **kwargs) -> None:
@@ -19,6 +22,10 @@ class PermissionGraphBackend(abc.ABC):
         """Check if a vertex with vtype=vtype and id=id already exists."""
 
     @abc.abstractmethod
+    def get_vertices_to(self, vertex: Vertex) -> list[Vertex]:
+        """Get all vertices that target a vertex."""
+
+    @abc.abstractmethod
     def add_edge(self, etype: str, source: Vertex, target: Vertex, **kwargs) -> None:
         """Add a edge to the permission graph.
 
@@ -27,6 +34,8 @@ class PermissionGraphBackend(abc.ABC):
             - source: source vertex
             - target: target vertex
             - **kwargs: addition attributes to add to edge
+
+        Raises ValueError if an edge from source to target already exists.
         """
 
     @abc.abstractmethod
@@ -40,3 +49,14 @@ class PermissionGraphBackend(abc.ABC):
     @abc.abstractmethod
     def remove_edge(self, source: Vertex, target: Vertex) -> None:
         """Remove an edge from the permission graph."""
+
+    @abc.abstractmethod
+    def shortest_path(self, source: Vertex, target: Vertex) -> list[Vertex]:
+        """Return the list of vertices that make the shortest path from source to target."""
+
+    @abc.abstractmethod
+    def get_edge_type(self, source: Vertex, target: Vertex) -> EdgeType:
+        """Return the EdgeType of the edge connecting two vertices.
+
+        Raises ValueError if there is no edge between the two vertices.
+        """

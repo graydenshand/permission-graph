@@ -1,7 +1,7 @@
 import igraph
 
 from permission_graph.backends.base import PermissionGraphBackend
-from permission_graph.structs import EdgeType, Vertex
+from permission_graph.structs import EdgeType, Vertex, vertex_factory
 
 
 class IGraphMemoryBackend(PermissionGraphBackend):
@@ -11,12 +11,20 @@ class IGraphMemoryBackend(PermissionGraphBackend):
         self.g = igraph.Graph(directed=True)
 
     def add_vertex(self, vertex: Vertex, **kwargs) -> None:
+        if self._get_vertex(vertex) is not None:
+            raise ValueError(f"Vertex already exists: {vertex}")
+
         self.g.add_vertices(f"{vertex.vertex_id}", attributes=dict(vtype=vertex.vtype, **kwargs))
 
     def remove_vertex(self, vertex: Vertex) -> None:
         v = self._get_vertex(vertex)
         if v is not None:
             self.g.delete_vertices(v.index)
+
+    def get_vertices_to(self, vertex: Vertex) -> list[Vertex]:
+        v = self._get_vertex(vertex)
+        sources = [edge.source_vertex for edge in self.g.es.select(_target=v)]
+        return [vertex_factory(source["vtype"], source["name"]) for source in sources]
 
     def _get_vertex(self, vertex: Vertex) -> igraph.Vertex:
         try:
@@ -54,24 +62,18 @@ class IGraphMemoryBackend(PermissionGraphBackend):
         if e is not None:
             self.g.delete_edges(e.index)
 
-    def action_is_authorized(self, user_id: str, resource_id: str, action: str) -> list[int]:
-        """Return the shortest path for a given user, resource and action."""
-        v1 = self._get_vertex("user", user_id)
-        v2 = self._get_vertex("resource", resource_id)
+    def shortest_path(self, source: Vertex, target: Vertex) -> list[Vertex]:
+        v1 = self._get_vertex(source)
+        v2 = self._get_vertex(target)
+        path = self.g.get_shortest_path(v1, v2)
+        output = []
+        for index in path:
+            v = self.g.vs[index]
+            output.append(vertex_factory(v["vtype"], v["name"]))
+        return output
 
-        # Inefficient for a dense permissions graph with many paths connecting user and resource
-        path_list = sorted(
-            self.g.get_all_simple_paths(
-                v1,
-                v2,
-            ),
-            key=lambda path: len(path),
-        )
-
-        for path in path_list:
-            # last path should be permission
-            edge = self.g.es.find(_source=path[-2], _target=path[-1], action_eq=action)
-            if edge is not None:
-                return edge["etype"] == "allow"
-        else:
-            return []
+    def get_edge_type(self, source: Vertex, target: Vertex) -> EdgeType:
+        e = self._get_edge(source, target)
+        if e is None:
+            raise ValueError(f"There is no edge from {source} to {target}.")
+        return EdgeType(e["etype"])

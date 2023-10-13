@@ -1,6 +1,6 @@
 from permission_graph.backends import PermissionGraphBackend
-from permission_graph.structs import (EdgeType, Group, Resource, ResourceType,
-                                      User, Vertex)
+from permission_graph.structs import (Action, EdgeType, Group, Resource,
+                                      ResourceType, User, Vertex)
 
 
 class PermissionGraph:
@@ -9,86 +9,63 @@ class PermissionGraph:
         self.resource_types = []
         self.backend = backend
 
-    def validate_vertex(self, vertex: Vertex):
-        """Validate a new vertex can be inserted."""
-        if self.backend.vertex_exists(vertex):
-            raise ValueError(f"Vertex already exists: '{vertex}'")
-        if isinstance(vertex, Resource):
-            if vertex.resource_type is None:
-                raise ValueError("Attempted to add resource with no resource_type.")
-
     def add_user(self, user: User) -> None:
         """Add a user to the permission graph."""
-        self.validate_vertex(user)
         self.backend.add_vertex(user)
 
     def remove_user(self, user: User) -> None:
         """Remove a user from the permission graph."""
         self.backend.remove_vertex(user)
 
+    def register_resource_type(self, resource_type: ResourceType):
+        """Register a resource type."""
+        if len(resource_type.actions) == 0:
+            raise ValueError("A resource type must have at least one action defined.")
+        self.resource_types.append(resource_type)
+
     def add_resource(self, resource: Resource) -> None:
         """Add a resource to the permission graph."""
-        self.validate_vertex(resource)
+        if resource.resource_type is None or not isinstance(resource.resource_type, ResourceType):
+            raise TypeError(f"Invalid resource_type '{resource.resource_type}'")
         if resource.resource_type not in self.resource_types:
-            self.resource_types.append(resource.resource_type)
+            raise ValueError(
+                f"Unrecognized ResourceType: {resource.resource_type}. " "Register with 'register_resource_type'."
+            )
         self.backend.add_vertex(resource)
+        for action_name in resource.resource_type.actions:
+            action = Action(action_name, resource)
+            self.backend.add_vertex(action)
+            self.backend.add_edge(EdgeType.MEMBER_OF, action, resource)
 
     def remove_resource(self, resource: Resource) -> None:
         """Remove a resource from the permission graph."""
+        actions = self.backend.get_vertices_to(resource)
         self.backend.remove_vertex(resource)
+        for action in actions:
+            self.backend.remove_vertex(action)
 
     def add_group(self, group: Group):
         """Add a group to the permission graph."""
-        self.validate_vertex(group)
         self.backend.add_vertex(group)
 
     def remove_group(self, group: Group):
         """Remove a group from the permission graph."""
         self.backend.remove_vertex(group)
 
-    def validate_edge(
-        self, etype: EdgeType, source: User | Group, target: Group | Resource, action: str | None = None
-    ) -> None:
-        """Validate a new edge.
-
-        Args:
-            - etype: edge type (one of 'member_of', 'allow', 'deny')
-            - source: tuple of (vtype, id) for source vertex
-            - target: tuple of (vtype, id) for target vertex
-            - **kwargs: edge attributes defined as key value pairs
-        """
-        if etype == EdgeType.MEMBER_OF:
-            if not (isinstance(source, User) and isinstance(target, Group)):
-                raise ValueError(
-                    f"Incompatible vertices for edge type. '{source.vtype}' cannot be a member of '{target.vtype}'"
-                )
-        if etype in (EdgeType.ALLOW, EdgeType.DENY):
-            if not isinstance(source, (User, Group)):
-                raise ValueError(f"Invalid vtype for edge source: '{source}'")
-            if not isinstance(target, Resource):
-                raise ValueError(f"Invalid vtype for edge target: '{target}'")
-            if action not in target.resource_type.actions:
-                raise ValueError(f"Invalid action for target '{target}': '{action}'")
-        if self.backend.edge_exists(source, target):
-            raise ValueError(f"An edge already exists between {source} and {target}")
-
-    def allow(self, user_or_group: User | Group, resource: Resource, action: str):
+    def allow(self, user_or_group: User | Group, action: Action):
         """Grant user or group permission to take action on resource or group."""
-        self.validate_edge(EdgeType.ALLOW, source=user_or_group, target=resource, action=action)
-        self.backend.add_edge(EdgeType.ALLOW, source=user_or_group, target=resource, action=action)
+        self.backend.add_edge(EdgeType.ALLOW, source=user_or_group, target=action)
 
-    def deny(self, user_or_group: User | Group, resource: Resource, action: str):
+    def deny(self, user_or_group: User | Group, action: Action):
         """Deny user or group permission to take action on resource or group."""
-        self.validate_edge(EdgeType.DENY, source=user_or_group, target=resource, action=action)
-        self.backend.add_edge(EdgeType.DENY, source=user_or_group, target=resource, action=action)
+        self.backend.add_edge(EdgeType.DENY, source=user_or_group, target=action)
 
-    def revoke(self, user_or_group: User | Group, resource: Resource, action: str):
+    def revoke(self, user_or_group: User | Group, action: Action):
         """Revoke a permission (either allow or deny)."""
-        self.backend.remove_edge(user_or_group, resource)
+        self.backend.remove_edge(user_or_group, action)
 
     def add_user_to_group(self, user: User, group: Group):
         """Add a user to a group."""
-        self.validate_edge(EdgeType.MEMBER_OF, source=user, target=group)
         self.backend.add_edge(EdgeType.MEMBER_OF, source=user, target=group)
 
     def remove_user_from_group(self, user: User, group: Group):
@@ -103,6 +80,10 @@ class PermissionGraph:
         """Describe a resource's permissions."""
         raise NotImplementedError
 
-    def action_is_authorized(self, user: User, resource: Resource, action: str) -> bool:
+    def action_is_authorized(self, user: User, action: str) -> bool:
         """Authorize user to perform action on resource."""
-        raise NotImplementedError
+        shortest_path = self.backend.shortest_path(user, action)
+        if len(shortest_path) == 0:
+            return False
+        else:
+            return self.backend.get_edge_type(shortest_path[-2], shortest_path[-1]) == EdgeType.ALLOW

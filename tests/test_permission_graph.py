@@ -2,9 +2,22 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from src.permission_graph import PermissionGraph
-from src.permission_graph.structs import (Action, Actor, EdgeType, Group,
-                                          Resource, ResourceType)
+from permission_graph import PermissionGraph
+from permission_graph.structs import (
+    Action,
+    Actor,
+    EdgeType,
+    Group,
+    Resource,
+    ResourceType,
+    TieBreakerPolicy,
+)
+
+ALICE = Actor("Alice")
+ADMINS = Group("Admins")
+DOCUMENT_TYPE = ResourceType("DocumentType", ["ViewDocument"])
+DOCUMENT = Resource("Document", DOCUMENT_TYPE)
+VIEW_DOCUMENT = Action("ViewDocument", DOCUMENT)
 
 
 @pytest.fixture
@@ -21,90 +34,119 @@ def graph(mock_backend):
 @pytest.mark.unit
 def test_add_actor(graph):
     graph.backend.vertex_exists.side_effect = [False, True]
-    actor = Actor("Alice")
-    graph.add_actor(actor)
-    assert graph.backend.add_vertex.called_once_with(vertex=actor)
+    graph.add_actor(ALICE)
+    assert graph.backend.add_vertex.called_once_with(vertex=ALICE)
 
 
 @pytest.mark.unit
 def test_remove_actor(graph):
-    actor = Actor("Alice")
-    graph.remove_actor(actor)
-    assert graph.backend.remove_vertex.called_once_with(vertex=actor)
+    graph.remove_actor(ALICE)
+    assert graph.backend.remove_vertex.called_once_with(vertex=ALICE)
 
 
 @pytest.mark.unit
 def test_add_resource(graph):
-    resource_type = ResourceType("Foo", actions=["bar"])
-    resource = Resource("foo", resource_type)
     # Verify ValueError raised when specifying unregistered ResourceType
     with pytest.raises(ValueError):
-        graph.add_resource(resource)
-    graph.register_resource_type(resource_type)
-    graph.add_resource(resource)
-    assert graph.backend.add_vertex.called_once_with(vertex=resource)
-    assert graph.backend.add_vertex.called_once_with(vertex=resource)
+        graph.add_resource(DOCUMENT)
+    graph.register_resource_type(DOCUMENT_TYPE)
+    graph.add_resource(DOCUMENT)
+    assert graph.backend.add_vertex.called_once_with(vertex=DOCUMENT)
 
 
 @pytest.mark.unit
 def test_remove_resource(graph):
-    resource = Resource("foo", ResourceType("Foo", actions=["bar"]))
-    graph.remove_resource(resource)
-    assert graph.backend.remove_vertex.called_once_with(vertex=resource)
+    graph.remove_resource(DOCUMENT)
+    assert graph.backend.remove_vertex.called_once_with(vertex=DOCUMENT)
 
 
 @pytest.mark.unit
 def test_add_group(graph):
     graph.backend.vertex_exists.side_effect = [False, True]
-    group = Group("Admins")
-    graph.add_group(group)
-    assert graph.backend.add_vertex.called_once_with(vertex=group)
+    graph.add_group(ADMINS)
+    assert graph.backend.add_vertex.called_once_with(vertex=ADMINS)
 
 
 @pytest.mark.unit
 def test_remove_group(graph):
-    group = Group("Admins")
-    graph.remove_group(group)
-    assert graph.backend.remove_vertex.called_once_with(vertex=group)
+    graph.remove_group(ADMINS)
+    assert graph.backend.remove_vertex.called_once_with(vertex=ADMINS)
 
 
 @pytest.mark.unit
 def test_add_actor_to_group(graph):
-    alice = Actor("Alice")
-    group = Group("Admins")
-    graph.add_actor_to_group(alice, group)
-    graph.backend.add_edge.assert_called_once_with(EdgeType.MEMBER_OF, source=alice, target=group)
+    graph.add_actor_to_group(ALICE, ADMINS)
+    graph.backend.add_edge.assert_called_once_with(EdgeType.MEMBER_OF, source=ALICE, target=ADMINS)
 
 
 @pytest.mark.unit
 def test_remove_actor_from_group(graph):
-    alice = Actor("Alice")
-    admins = Group("Admins")
-    graph.remove_actor_from_group(alice, admins)
+    graph.remove_actor_from_group(ALICE, ADMINS)
+    graph.backend.remove_edge.assert_called_once_with(source=ALICE, target=ADMINS)
 
 
 @pytest.mark.unit
 def test_allow(graph):
-    alice = Actor("Alice")
-    foo = Resource("foo", ResourceType("Foo", ["bar"]))
-    bar = Action("bar", foo)
-    graph.allow(alice, bar)
-    graph.backend.add_edge.assert_called_once_with(EdgeType.ALLOW, source=alice, target=bar)
+    graph.allow(ALICE, VIEW_DOCUMENT)
+    graph.backend.add_edge.assert_called_once_with(EdgeType.ALLOW, source=ALICE, target=VIEW_DOCUMENT)
 
 
 @pytest.mark.unit
 def test_deny(graph):
-    alice = Actor("Alice")
-    foo = Resource("foo", ResourceType("Foo", ["bar"]))
-    bar = Action("bar", foo)
-    graph.deny(alice, bar)
-    graph.backend.add_edge.assert_called_once_with(EdgeType.DENY, source=alice, target=bar)
+    graph.deny(ALICE, VIEW_DOCUMENT)
+    graph.backend.add_edge.assert_called_once_with(EdgeType.DENY, source=ALICE, target=VIEW_DOCUMENT)
 
 
 @pytest.mark.unit
 def test_revoke(graph):
-    alice = Actor("Alice")
-    foo = Resource("foo", ResourceType("Foo", ["bar"]))
-    bar = Action("bar", foo)
-    graph.revoke(alice, bar)
-    graph.backend.remove_edge.assert_called_once_with(alice, bar)
+    graph.revoke(ALICE, VIEW_DOCUMENT)
+    graph.backend.remove_edge.assert_called_once_with(ALICE, VIEW_DOCUMENT)
+
+
+@pytest.mark.unit
+@pytest.mark.parametrize(
+    "shortest_paths,terminal_edge_types,tie_breaker_policy,expected",
+    [
+        # No paths connecting agent to action - DENY
+        ([], [EdgeType.ALLOW], TieBreakerPolicy.ANY_ALLOW, False),
+        # One path that allows access - ALLOW
+        ([[ALICE, VIEW_DOCUMENT]], [EdgeType.ALLOW], TieBreakerPolicy.ANY_ALLOW, True),
+        # One path that denies access - DENY
+        ([[ALICE, VIEW_DOCUMENT]], [EdgeType.DENY], TieBreakerPolicy.ANY_ALLOW, False),
+        # Two paths, one allows one denies, tiebreaker policy ANY_ALLOW -- ALLOW
+        (
+            [
+                [ALICE, VIEW_DOCUMENT],
+                [ALICE, VIEW_DOCUMENT],
+            ],
+            [EdgeType.ALLOW, EdgeType.DENY],
+            TieBreakerPolicy.ANY_ALLOW,
+            True,
+        ),
+        # Two paths, one allows one denies, tiebreaker policy ALL_ALLOW -- DENY
+        (
+            [
+                [ALICE, VIEW_DOCUMENT],
+                [ALICE, VIEW_DOCUMENT],
+            ],
+            [EdgeType.ALLOW, EdgeType.DENY],
+            TieBreakerPolicy.ALL_ALLOW,
+            False,
+        ),
+        # Two paths, both deny, tiebreaker policy ANY_ALLOW -- DENY
+        (
+            [
+                [ALICE, VIEW_DOCUMENT],
+                [ALICE, VIEW_DOCUMENT],
+            ],
+            [EdgeType.DENY, EdgeType.DENY],
+            TieBreakerPolicy.ANY_ALLOW,
+            False,
+        ),
+    ],
+)
+def test_action_is_authorized(mock_backend, shortest_paths, terminal_edge_types, tie_breaker_policy, expected):
+    graph = PermissionGraph(backend=mock_backend, tie_breaker_policy=tie_breaker_policy)
+    graph.backend.shortest_paths.return_value = shortest_paths
+    graph.backend.get_edge_type.side_effect = terminal_edge_types
+    assert graph.action_is_authorized(ALICE, VIEW_DOCUMENT) is expected

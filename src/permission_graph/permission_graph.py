@@ -1,6 +1,13 @@
 from permission_graph.backends.base import PermissionGraphBackend
-from permission_graph.structs import (Action, Actor, EdgeType, Group, Resource,
-                                      ResourceType, TieBreakerPolicy, Vertex)
+from permission_graph.structs import (
+    Action,
+    Actor,
+    EdgeType,
+    Group,
+    Resource,
+    ResourceType,
+    TieBreakerPolicy,
+)
 
 
 class PermissionGraph:
@@ -83,24 +90,6 @@ class PermissionGraph:
         """Describe a resource's permissions."""
         raise NotImplementedError
 
-    def _path_allows_action(self, path: list[Vertex]) -> bool:
-        """Returns True if a path from actor to action is allowed.
-
-        For a path to be allowed, the path must contain an "ALLOW" edge, and
-        no "DENY" edges.
-        """
-        allow_edge_found = False
-        for i in range(len(path) - 1):
-            edge_type = self.backend.get_edge_type(path[i], path[i + 1])
-            match edge_type:
-                case EdgeType.MEMBER_OF:
-                    continue
-                case EdgeType.DENY:
-                    return False
-                case EdgeType.ALLOW:
-                    allow_edge_found = True
-        return allow_edge_found
-
     def action_is_authorized(self, actor: Actor, action: str) -> bool:
         """Authorize actor to perform action on resource."""
         shortest_paths = self.backend.shortest_paths(actor, action)
@@ -108,11 +97,11 @@ class PermissionGraph:
             return False
         elif len(shortest_paths) == 1:
             shortest_path = shortest_paths[0]
-            return self._path_allows_action(shortest_path)
+            return self.backend.get_edge_type(shortest_path[-2], shortest_path[-1]) == EdgeType.ALLOW
         else:
             match self.tie_breaker_policy:
                 case TieBreakerPolicy.ANY_ALLOW:
                     policy = any
                 case TieBreakerPolicy.ALL_ALLOW:
                     policy = all
-            return policy(self._path_allows_action(path) for path in shortest_paths)
+            return policy(self.backend.get_edge_type(path[-2], path[-1]) == EdgeType.ALLOW for path in shortest_paths)

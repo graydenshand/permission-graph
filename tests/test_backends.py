@@ -1,9 +1,15 @@
 import pytest
 
-from src.permission_graph.backends.base import PermissionGraphBackend
-from src.permission_graph.backends.igraph import IGraphMemoryBackend
-from src.permission_graph.structs import (Action, Actor, EdgeType, Group,
-                                          Resource, ResourceType)
+from permission_graph.backends.base import PermissionGraphBackend
+from permission_graph.backends.igraph import IGraphMemoryBackend
+from permission_graph.structs import (
+    Action,
+    Actor,
+    EdgeType,
+    Group,
+    Resource,
+    ResourceType,
+)
 
 
 @pytest.mark.integration

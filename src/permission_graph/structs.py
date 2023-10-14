@@ -6,7 +6,7 @@ from typing import Self
 @dataclass
 class ResourceType:
     """A type of resource, with a fixed set of actions.
-    
+
     Attributes:
         name: The name of the resource type
         actions: A list of actions each resource of this type supports
@@ -25,7 +25,7 @@ class Vertex:
         """Initialize a vertex.
 
         A vertex is uniquely defined by it's vtype and name.
-        
+
         Args:
             name: the name of the vertex
         """
@@ -39,7 +39,7 @@ class Vertex:
     @classmethod
     def from_vertex_id(cls, vertex_id: str) -> Self:
         """Return a Vertex object from vertex_id.
-        
+
         Args:
             vertex_id: the id of the vertex to build from
         """
@@ -52,16 +52,19 @@ class Vertex:
 
 class Actor(Vertex):
     """A vertex type representing an actor."""
+
     vtype = "actor"
 
 
 class Group(Vertex):
     """A vertex type representing a group."""
+
     vtype = "group"
 
 
 class Resource(Vertex):
     """A vertex type representing a resource."""
+
     vtype = "resource"
 
     def __init__(self, name: str, resource_type: ResourceType | None = None):
@@ -77,11 +80,12 @@ class Resource(Vertex):
 
 class Action(Vertex):
     """A vertex type representing an action on a resource."""
+
     vtype = "action"
 
     def __init__(self, name: str, resource: Resource):
         """Initialize an action.
-        
+
         Args:
             name: The name of the action
             resource: The resource this action operates on
@@ -91,7 +95,7 @@ class Action(Vertex):
 
     @property
     def vertex_id(self) -> str:
-        return f"{self.vtype}:{self.resource.id}:{self.name}"
+        return f"{self.vtype}:{self.resource.name}:{self.name}"
 
     @classmethod
     def from_vertex_id(cls, vertex_id: str) -> Self:
@@ -102,7 +106,7 @@ class Action(Vertex):
 
 def vertex_factory(vtype: str, vertex_id: str) -> Vertex:
     """Return a vertex object given vtype and vertex_id.
-    
+
     Args:
         vtype: The type of the vertex (`user`, `action`, `group`, `resource`)
         vertex_id: The id of the vertex
@@ -113,13 +117,14 @@ def vertex_factory(vtype: str, vertex_id: str) -> Vertex:
 
 class EdgeType(Enum):
     """Type for edges.
-    
+
     Values
-    
+
     - `ALLOW`: allow an actor to take an action
     - `DENY`: deny an actor from taking an action
     - `MEMBER_OF`: indicate membership in a collection
     """
+
     ALLOW = "ALLOW"
     DENY = "DENY"
     MEMBER_OF = "MEMBER_OF"
@@ -127,11 +132,12 @@ class EdgeType(Enum):
 
 class TieBreakerPolicy(Enum):
     """Policy for breaking ties in permissions graph.
-    
+
     Values
 
     - `ANY_ALLOW`: allow if any of the candidate paths allow the action
     - `ALL_ALLOW`: allow only if all of the candidate paths allow the action
     """
+
     ANY_ALLOW = "ANY_ALLOW"
     ALL_ALLOW = "ALL_ALLOW"

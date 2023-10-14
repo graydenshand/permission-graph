@@ -1,10 +1,16 @@
 """System level tests."""
 import pytest
 
-from src.permission_graph import PermissionGraph
-from src.permission_graph.backends.igraph import IGraphMemoryBackend
-from src.permission_graph.structs import (Action, Actor, Group, Resource,
-                                          ResourceType, TieBreakerPolicy)
+from permission_graph import PermissionGraph
+from permission_graph.backends.igraph import IGraphMemoryBackend
+from permission_graph.structs import (
+    Action,
+    Actor,
+    Group,
+    Resource,
+    ResourceType,
+    TieBreakerPolicy,
+)
 
 
 @pytest.fixture

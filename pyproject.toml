@@ -56,3 +56,5 @@ dev = [
 format.shell = "black . && isort ."
 publish.shell = "pdm build && python -m twine upload dist/*"
 
+[tool.isort]
+profile = "black"

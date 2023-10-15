@@ -2,14 +2,7 @@ import pytest
 
 from permission_graph.backends.base import PermissionGraphBackend
 from permission_graph.backends.igraph import IGraphMemoryBackend
-from permission_graph.structs import (
-    Action,
-    Actor,
-    EdgeType,
-    Group,
-    Resource,
-    ResourceType,
-)
+from permission_graph.structs import Action, Actor, EdgeType, Group
 
 
 @pytest.mark.integration
@@ -18,7 +11,7 @@ def test_backend(backend: PermissionGraphBackend):
     """A simple test that any valid backend should pass."""
 
     # Add a vertex to the graph
-    actor = Actor("Alice")
+    actor = Actor(name="Alice")
     backend.add_vertex(actor)
     assert backend.vertex_exists(actor)
 
@@ -27,7 +20,7 @@ def test_backend(backend: PermissionGraphBackend):
         backend.add_vertex(actor)
 
     # Add a second vertex and an edge between it and the first
-    group = Group("Admins")
+    group = Group(name="Admins")
     backend.add_vertex(group)
     with pytest.raises(ValueError):
         backend.get_edge_type(actor, group)
@@ -42,8 +35,7 @@ def test_backend(backend: PermissionGraphBackend):
         backend.add_edge(EdgeType.MEMBER_OF, actor, group)
 
     # Add more vertices and edges
-    resource = Resource("foo", ResourceType("Foo", ["bar"]))
-    action = Action("bar", resource)
+    action = Action(name="bar", resource_type="Document", resource="my_document.csv")
     backend.add_vertex(action)
     backend.add_edge(EdgeType.DENY, group, action)
     backend.add_edge(EdgeType.ALLOW, actor, action)

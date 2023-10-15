@@ -10,6 +10,8 @@ theme:
     - content.code.copy
     - content.code.annotate
     - content.tabs.link
+  icon:
+    annotation: material/star-four-points-circle
 
 markdown_extensions:
   - pymdownx.superfences:
@@ -19,6 +21,9 @@ markdown_extensions:
           format: !!python/name:pymdownx.superfences.fence_code_format
   - pymdownx.tabbed:
       alternate_style: true
+  - attr_list
+  - md_in_html
+
 
 plugins:
   - search

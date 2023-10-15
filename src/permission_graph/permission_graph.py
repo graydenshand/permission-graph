@@ -1,9 +1,11 @@
 from permission_graph.backends.base import PermissionGraphBackend
+from permission_graph.backends.igraph import IGraphMemoryBackend
 from permission_graph.structs import (
     Action,
     Actor,
     EdgeType,
     Group,
+    PermissionPolicy,
     Resource,
     ResourceType,
     TieBreakerPolicy,
@@ -12,14 +14,16 @@ from permission_graph.structs import (
 
 class PermissionGraph:
     def __init__(
-        self, backend: PermissionGraphBackend, tie_breaker_policy: TieBreakerPolicy = TieBreakerPolicy.ANY_ALLOW
+        self, backend: PermissionGraphBackend = None, tie_breaker_policy: TieBreakerPolicy = TieBreakerPolicy.ANY_ALLOW
     ) -> None:
         """Initialize a new PermissionGraph."""
-        self.resource_types = []
+        if backend is None:
+            backend = IGraphMemoryBackend()
         self.backend = backend
         self.tie_breaker_policy = tie_breaker_policy
+        self._resource_type_map = {}
 
-    def add_actor(self, actor: Actor) -> None:
+    def add_actor(self, actor: Actor | str) -> None:
         """Add a actor to the permission graph."""
         self.backend.add_vertex(actor)
 
@@ -27,32 +31,32 @@ class PermissionGraph:
         """Remove a actor from the permission graph."""
         self.backend.remove_vertex(actor)
 
-    def register_resource_type(self, resource_type: ResourceType):
-        """Register a resource type."""
-        if len(resource_type.actions) == 0:
-            raise ValueError("A resource type must have at least one action defined.")
-        self.resource_types.append(resource_type)
+    def add_resource_type(self, resource_type: ResourceType):
+        """Register a resource type to the permission graph."""
+        self.backend.add_vertex(resource_type, actions=resource_type.actions)
+
+    def remove_resource_type(self, resource_type: ResourceType):
+        """Remove a resource type from the permission graph."""
+        for resource in self.backend.get_vertices_to(resource_type):
+            self.remove_resource(resource)
+        self.backend.remove_vertex(resource_type)
 
     def add_resource(self, resource: Resource) -> None:
         """Add a resource to the permission graph."""
-        if resource.resource_type is None or not isinstance(resource.resource_type, ResourceType):
-            raise TypeError(f"Invalid resource_type '{resource.resource_type}'")
-        if resource.resource_type not in self.resource_types:
-            raise ValueError(
-                f"Unrecognized ResourceType: {resource.resource_type}. " "Register with 'register_resource_type'."
-            )
-        self.backend.add_vertex(resource)
-        for action_name in resource.resource_type.actions:
-            action = Action(action_name, resource)
+        resource_type = self.backend.vertex_factory(f"resource_type:{resource.resource_type}")
+        self.backend.add_vertex(resource, resource_type=resource.resource_type)
+        self.backend.add_edge(EdgeType.MEMBER_OF, resource, resource_type)
+        for action_name in resource_type.actions:
+            action = Action(name=action_name, resource_type=resource.resource_type, resource=resource.name)
             self.backend.add_vertex(action)
             self.backend.add_edge(EdgeType.MEMBER_OF, action, resource)
 
     def remove_resource(self, resource: Resource) -> None:
         """Remove a resource from the permission graph."""
         actions = self.backend.get_vertices_to(resource)
-        self.backend.remove_vertex(resource)
         for action in actions:
             self.backend.remove_vertex(action)
+        self.backend.remove_vertex(resource)
 
     def add_group(self, group: Group):
         """Add a group to the permission graph."""
@@ -82,12 +86,26 @@ class PermissionGraph:
         """Remove a actor from a group."""
         self.backend.remove_edge(source=actor, target=group)
 
-    def describe_actor_permissions(self, actor: Actor):
-        """Describe a actor's permissions."""
+    def describe_actor_permissions(self, actor: Actor) -> list[PermissionPolicy]:
+        """Describe an actor's permissions.
+
+        Returns:
+            A list of objects:
+                - action: Action
+                - actor: Actor
+                - path: list[Vertex]
+        """
         raise NotImplementedError
 
-    def describe_resource_permissions(self, resource: Resource):
-        """Describe a resource's permissions."""
+    def describe_resource_permissions(self, resource: Resource) -> list[PermissionPolicy]:
+        """Describe permissions on a resource.
+
+        Returns:
+            A list of objects:
+                - action: Action
+                - actor: Actor
+                - path: list[Vertex]
+        """
         raise NotImplementedError
 
     def action_is_authorized(self, actor: Actor, action: str) -> bool:
@@ -105,3 +123,12 @@ class PermissionGraph:
                 case TieBreakerPolicy.ALL_ALLOW:
                     policy = all
             return policy(self.backend.get_edge_type(path[-2], path[-1]) == EdgeType.ALLOW for path in shortest_paths)
+
+    def update_resource_type(self, resource_type_name: str, new_actions: list[str]):
+        """Update the set of actions supported by ResourceType.
+
+        This method updates the ResourceType definition, and updates all existing
+        resources of this resource type.
+        """
+        resources = self.backend.get_vertices_by_prefix(f"resource:{resource_type_name}:")
+        raise NotImplementedError

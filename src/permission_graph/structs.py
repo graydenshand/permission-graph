@@ -1,118 +1,106 @@
+import uuid
 from dataclasses import dataclass
 from enum import Enum
 from typing import Self
 
+from pydantic import BaseModel, Field
 
-@dataclass
-class ResourceType:
-    """A type of resource, with a fixed set of actions.
+# class ResourceType(BaseModel):
+#     """A type of resource, with a fixed set of actions.
 
-    Attributes:
-        name: The name of the resource type
-        actions: A list of actions each resource of this type supports
-    """
+#     Attributes:
+#         name: The name of the resource type
+#         actions: A list of actions each resource of this type supports
+#     """
 
-    name: str
-    actions: list[str]
+#     name: str
+#     actions: list[str]
 
 
-class Vertex:
-    """Base class for graph Vertices."""
+class Vertex(BaseModel):
+    """A vertex in the permission graph."""
 
     vtype: str
-
-    def __init__(self, name: str):
-        """Initialize a vertex.
-
-        A vertex is uniquely defined by it's vtype and name.
-
-        Args:
-            name: the name of the vertex
-        """
-        self.name = name
+    name: str
 
     @property
-    def vertex_id(self) -> str:
-        """Return the vertex_id of the vertex."""
+    def id(self) -> str:
         return f"{self.vtype}:{self.name}"
 
     @classmethod
-    def from_vertex_id(cls, vertex_id: str) -> Self:
-        """Return a Vertex object from vertex_id.
+    def from_id(cls, vertex_id: str) -> str:
+        """Return an instance of this class from a vertex id."""
+        vtype, name = vertex_id.split(":")
+        return cls(vtype=vtype, name=name)
+
+    @staticmethod
+    def factory(vertex_id: str, **kwargs) -> Self:
+        """Return a vertex object given vtype and vertex_id.
 
         Args:
-            vertex_id: the id of the vertex to build from
+            vtype: The type of the vertex (`user`, `action`, `group`, `resource`)
+            vertex_id: The id of the vertex
         """
-        name = vertex_id.split(":")[-1]
-        return cls(name)
+        vtype_map = {"actor": Actor, "resource": Resource, "action": Action, "group": Group}
+        vtype = vertex_id.split(":")[0]
+        return vtype_map[vtype].from_id(vertex_id, **kwargs)
 
-    def __eq__(self, other: object) -> bool:
-        return self.vertex_id == other.vertex_id
+
+class ResourceType(Vertex):
+    """A vertex type representing resource types."""
+
+    vtype: str = Field(default="resource_type")
+    actions: list[str]
+
+    @classmethod
+    def from_id(cls, vertex_id: str, actions):
+        vtype, name = vertex_id.split(":")
+        return cls(vtype=vtype, name=name, actions=actions)
 
 
 class Actor(Vertex):
     """A vertex type representing an actor."""
 
-    vtype = "actor"
+    vtype: str = Field(default="actor")
 
 
 class Group(Vertex):
-    """A vertex type representing a group."""
+    """A vertex type representing a group of Actors."""
 
-    vtype = "group"
+    vtype: str = Field(default="group")
 
 
 class Resource(Vertex):
     """A vertex type representing a resource."""
 
-    vtype = "resource"
+    vtype: str = Field(default="resource")
+    resource_type: str
 
-    def __init__(self, name: str, resource_type: ResourceType | None = None):
-        """Initialize a resource.
+    @property
+    def id(self) -> str:
+        return f"{self.vtype}:{self.resource_type}:{self.name}"
 
-        Args:
-            name: The name of the resource
-            resource_type: The type of the resource
-        """
-        super().__init__(name)
-        self.resource_type = resource_type
+    @classmethod
+    def from_id(cls, vertex_id: str) -> Self:
+        vtype, resource_type, name = vertex_id.split(":")
+        return cls(vtype=vtype, resource_type=resource_type, name=name)
 
 
 class Action(Vertex):
     """A vertex type representing an action on a resource."""
 
-    vtype = "action"
-
-    def __init__(self, name: str, resource: Resource):
-        """Initialize an action.
-
-        Args:
-            name: The name of the action
-            resource: The resource this action operates on
-        """
-        super().__init__(name)
-        self.resource = resource
+    vtype: str = Field(default="action")
+    resource_type: str
+    resource: str
 
     @property
-    def vertex_id(self) -> str:
-        return f"{self.vtype}:{self.resource.name}:{self.name}"
+    def id(self) -> str:
+        return f"{self.vtype}:{self.resource_type}:{self.resource}:{self.name}"
 
     @classmethod
-    def from_vertex_id(cls, vertex_id: str) -> Self:
-        _, resource_id, name = vertex_id.split(":")
-        resource = Resource(resource_id)
-        return cls(name, resource)
-
-
-def vertex_factory(vtype: str, vertex_id: str) -> Vertex:
-    """Return a vertex object given vtype and vertex_id.
-
-    Args:
-        vtype: The type of the vertex (`user`, `action`, `group`, `resource`)
-        vertex_id: The id of the vertex
-    """
-    vtype_map = {"actor": Actor, "resource": Resource, "action": Action, "group": Group}
-    return vtype_map[vtype].from_vertex_id(vertex_id)
+    def from_id(cls, vertex_id: str) -> Self:
+        vtype, resource_type, resource, name = vertex_id.split(":")
+        return cls(vtype=vtype, resource_type=resource_type, resource=resource, name=name)
 
 
 class EdgeType(Enum):
@@ -141,3 +129,34 @@ class TieBreakerPolicy(Enum):
 
     ANY_ALLOW = "ANY_ALLOW"
     ALL_ALLOW = "ALL_ALLOW"
+
+
+class Effect(Enum):
+    """The effect of a permission policy.
+
+    Values
+
+    - `ALLOW`: action is allowed
+    - `DENY`: action is not allowed
+    """
+
+    ALLOW = "ALLOW"
+    DENY = "DENY"
+
+
+class PermissionPolicy(BaseModel):
+    """A permission policy statement.
+
+    PermissionPolicy objects represent a permission statement linking a user
+    to an action.
+
+    Attributes:
+        action: The policy's action
+        actor: The policy's actor
+        effect: The EdgeType of the
+    """
+
+    action: Action
+    actor: Actor
+    effect: Effect
+    path: list[Vertex]

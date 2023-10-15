@@ -2,6 +2,7 @@
 
 A graph based authorization library
 
+[Documentation](https://graydenshand.github.io/permission-graph/)
 
 ## Overview
 
@@ -9,25 +10,22 @@ The permissions graph consists of Vertices and Edges.
 
 **Vertices**
 
-* `Resource`: a resource with predefined actions requiring authorization
-* `Actor`: an identity that will take actions on resources
-* `Group`: a named collection of `Actors`
+* `ResourceType`: a type definition for resources describing its supported actions
+* `Resource`: a resource with actions requiring authorization
 * `Action`: an action on a resource
-
+* `Actor`: an identity that will take actions on resources
+* `Group`: a named collection of `Actors` with shared permission policies
 
 **Edges**
 
 * `MemberOf`: indicates membership in a collection
     - `Actor -> MemberOf -> Group`
     - `Action -> MemberOf -> Resource`
+    - `Resource -> MemberOf -> ResourceType`
 * `Allow`: indicates positive permission to act on a resource
-    - `Actor -> Allow -> Action`
-    - `Group -> Allow -> Action`
-    - `Action -> Allow -> Action`
+    - `Actor|Group|Action -> Allow -> Action`
 * `Deny`: indicates negative permission to act on a resource
-    - `Actor -> Deny -> Action`
-    - `Group -> Deny -> Action`
-    - `Action -> Deny -> Action`
+    - `Actor|Group|Action -> Deny -> Action`
 
 ### Authorizing Access
 

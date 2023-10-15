@@ -1,7 +1,7 @@
 import abc
 from typing import Any
 
-from permission_graph.structs import Actor, EdgeType, Resource, Vertex
+from permission_graph.structs import EdgeType, ResourceType, Vertex
 
 
 class PermissionGraphBackend(abc.ABC):
@@ -44,10 +44,6 @@ class PermissionGraphBackend(abc.ABC):
         """Return True if edge exists."""
 
     @abc.abstractmethod
-    def edge_exists(self, source: Vertex, target: Vertex) -> bool:
-        """Return True if edge exists."""
-
-    @abc.abstractmethod
     def remove_edge(self, source: Vertex, target: Vertex) -> None:
         """Remove an edge from the permission graph."""
 
@@ -67,4 +63,11 @@ class PermissionGraphBackend(abc.ABC):
         """Return the EdgeType of the edge connecting two vertices.
 
         Raises ValueError if there is no edge between the two vertices.
+        """
+
+    @abc.abstractmethod
+    def vertex_factory(self, vertex_id) -> Vertex:
+        """Return a vertex from a vertex id.
+
+        Given a vertex id, return an vertex object of the appropriate subclass.
         """

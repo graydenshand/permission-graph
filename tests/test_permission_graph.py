@@ -13,11 +13,11 @@ from permission_graph.structs import (
     TieBreakerPolicy,
 )
 
-ALICE = Actor("Alice")
-ADMINS = Group("Admins")
-DOCUMENT_TYPE = ResourceType("DocumentType", ["ViewDocument"])
-DOCUMENT = Resource("Document", DOCUMENT_TYPE)
-VIEW_DOCUMENT = Action("ViewDocument", DOCUMENT)
+ALICE = Actor(name="Alice")
+ADMINS = Group(name="Admins")
+DOCUMENT_TYPE = ResourceType(name="Document", actions=["ViewDocument"])
+DOCUMENT = Resource(name="My_Document.csv", resource_type="Document")
+VIEW_DOCUMENT = Action(name="ViewDocument", resource_type="Document", resource="My_Document.csv")
 
 
 @pytest.fixture
@@ -46,12 +46,10 @@ def test_remove_actor(graph):
 
 @pytest.mark.unit
 def test_add_resource(graph):
-    # Verify ValueError raised when specifying unregistered ResourceType
-    with pytest.raises(ValueError):
-        graph.add_resource(DOCUMENT)
-    graph.register_resource_type(DOCUMENT_TYPE)
     graph.add_resource(DOCUMENT)
-    assert graph.backend.add_vertex.called_once_with(vertex=DOCUMENT)
+    graph.backend.add_vertex.called_once_with(vertex=DOCUMENT)
+    graph.backend.add_vertex.called_once_with(vertex=VIEW_DOCUMENT)
+    graph.backend.add_edge.called_once_with(EdgeType.MEMBER_OF, VIEW_DOCUMENT, DOCUMENT)
 
 
 @pytest.mark.unit

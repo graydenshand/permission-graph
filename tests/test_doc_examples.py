@@ -14,9 +14,11 @@ from sys import stderr
 
 import pytest
 
+params = [pytest.param(path, id=str(path)) for path in Path("docs").glob("**/*.md")]
+
 
 @pytest.mark.docs
-@pytest.mark.parametrize("path", Path("docs").glob("**/*.md"))
+@pytest.mark.parametrize("path", params)
 def test_doc_examples(path: Path):
     with path.open("r") as f:
         content = f.read()

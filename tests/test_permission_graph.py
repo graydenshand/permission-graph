@@ -148,3 +148,13 @@ def test_action_is_authorized(mock_backend, shortest_paths, terminal_edge_types,
     graph.backend.shortest_paths.return_value = shortest_paths
     graph.backend.get_edge_type.side_effect = terminal_edge_types
     assert graph.action_is_authorized(ALICE, VIEW_DOCUMENT) is expected
+
+
+@pytest.mark.unit
+def test_terminal_paths(graph):
+    graph.backend.get_vertices_from.side_effect = [
+        [ADMINS, VIEW_DOCUMENT],  # ALICE -> ADMINS, ALICE -> VIEW_DOCUMENT
+        [],  # ADMINS -X
+        [DOCUMENT],  # VIEW_DOCUMENT -> DOCUMENT
+        [DOCUMENT_TYPE],  # DOCUMENT -> DOCUMENT_TYPE
+    ]

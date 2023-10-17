@@ -153,10 +153,12 @@ class PermissionPolicy(BaseModel):
     Attributes:
         action: The policy's action
         actor: The policy's actor
-        effect: The EdgeType of the
+        resource: The resource being acted upon
+        resourceType: The resource type of the resource being acted upon
     """
 
     action: Action
     actor: Actor
-    effect: Effect
-    path: list[Vertex]
+    group: Group | None
+    resource: Resource
+    resourceType: ResourceType

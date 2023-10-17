@@ -27,6 +27,14 @@ class PermissionGraphBackend(abc.ABC):
         """Get all vertices that target a vertex."""
 
     @abc.abstractmethod
+    def get_vertices_from(self, vertex: Vertex) -> list[Vertex]:
+        """Get all vertices that a vertex targets."""
+
+    @abc.abstractmethod
+    def update_vertex_attributes(self, vertex: Vertex, **kwargs):
+        """Update one or more attributes of a vertex."""
+
+    @abc.abstractmethod
     def add_edge(self, etype: str, source: Vertex, target: Vertex, **kwargs: Any) -> None:
         """Add a edge to the permission graph.
 

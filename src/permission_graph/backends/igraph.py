@@ -32,10 +32,20 @@ class IGraphMemoryBackend(PermissionGraphBackend):
         v = self._g.vs.find(vertex.id)
         self._g.delete_vertices(v.index)
 
+    def update_vertex_attributes(self, vertex: Vertex, **kwargs: Any) -> None:
+        v = self._g.vs.find(vertex.id)
+        for key, value in kwargs.items():
+            v[key] = value
+
     def get_vertices_to(self, vertex: Vertex) -> list[Vertex]:
         v = self._get_igraph_vertex(vertex.id)
-        sources = [edge.source_vertex for edge in self._g.es.select(_target=v)]
-        return [self.vertex_factory(source["name"]) for source in sources]
+        sources = [self.vertex_factory(edge.source_vertex["name"]) for edge in self._g.es.select(_target=v)]
+        return sources
+
+    def get_vertices_from(self, vertex: Vertex) -> list[Vertex]:
+        v = self._get_igraph_vertex(vertex.id)
+        sources = [self.vertex_factory(edge.target_vertex["name"]) for edge in self._g.es.select(_source=v)]
+        return sources
 
     def _get_igraph_vertex(self, vertex_id: str) -> igraph.Vertex:
         """Get an igraph vertex given a vertex id."""

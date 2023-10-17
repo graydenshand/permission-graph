@@ -20,6 +20,7 @@ def igraph():
     return graph
 
 
+@pytest.mark.system
 @pytest.mark.integration
 def test_system(igraph):
     alice = Actor(name="Alice")

@@ -439,7 +439,6 @@ For simplicity, only the view permission is shown here.
         style document_type fill:#f8b1de
         style directory fill:#eef95a
         style directory_type fill:#f8b1de
-        linkStyle 3 stroke:#0f0,stroke-width:4px,color:green;
         linkStyle 4 stroke:#0f0,stroke-width:4px,color:green;
         linkStyle 5 stroke:#0f0,stroke-width:4px,color:green;
     ```

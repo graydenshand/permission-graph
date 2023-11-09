@@ -3,15 +3,7 @@ from typing import Any
 import igraph
 
 from permission_graph.backends.base import PermissionGraphBackend
-from permission_graph.structs import (
-    Action,
-    Actor,
-    EdgeType,
-    Group,
-    Resource,
-    ResourceType,
-    Vertex,
-)
+from permission_graph.structs import EdgeType, Vertex
 
 
 class IGraphMemoryBackend(PermissionGraphBackend):

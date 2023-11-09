@@ -4,15 +4,7 @@ from typing import Any
 import psycopg2
 
 from permission_graph.backends.base import PermissionGraphBackend
-from permission_graph.structs import (
-    Action,
-    Actor,
-    EdgeType,
-    Group,
-    Resource,
-    ResourceType,
-    Vertex,
-)
+from permission_graph.structs import EdgeType, Vertex
 
 
 class PostgresBackend(PermissionGraphBackend):

@@ -7,7 +7,6 @@ from permission_graph.structs import (
     Actor,
     EdgeType,
     Group,
-    PermissionPolicy,
     Resource,
     ResourceType,
     TieBreakerPolicy,

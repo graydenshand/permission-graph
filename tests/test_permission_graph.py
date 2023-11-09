@@ -3,21 +3,8 @@ from unittest.mock import MagicMock
 import pytest
 
 from permission_graph import PermissionGraph
-from permission_graph.structs import (
-    Action,
-    Actor,
-    EdgeType,
-    Group,
-    Resource,
-    ResourceType,
-    TieBreakerPolicy,
-)
-
-ALICE = Actor(name="Alice")
-ADMINS = Group(name="Admins")
-DOCUMENT_TYPE = ResourceType(name="Document", actions=["ViewDocument"])
-DOCUMENT = Resource(name="My_Document.csv", resource_type="Document")
-VIEW_DOCUMENT = Action(name="ViewDocument", resource_type="Document", resource="My_Document.csv")
+from permission_graph.structs import EdgeType, TieBreakerPolicy
+from tests import ADMINS, ALICE, DOCUMENT, DOCUMENT_TYPE, VIEW_DOCUMENT
 
 
 @pytest.fixture

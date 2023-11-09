@@ -1,7 +1,7 @@
 import abc
 from typing import Any
 
-from permission_graph.structs import EdgeType, ResourceType, Vertex
+from permission_graph.structs import EdgeType, Vertex
 
 
 class PermissionGraphBackend(abc.ABC):

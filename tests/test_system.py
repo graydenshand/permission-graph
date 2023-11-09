@@ -72,3 +72,5 @@ def test_system(igraph):
     )
     igraph.allow(bob, Action(name="Share", resource_type="Directory", resource="Home"))
     assert igraph.action_is_authorized(bob, Action(name="Share", resource_type="Document", resource="MyDoc"))
+
+    breakpoint()

@@ -2,6 +2,7 @@ import pytest
 
 from permission_graph.backends.base import PermissionGraphBackend
 from permission_graph.backends.igraph import IGraphMemoryBackend
+from permission_graph.backends.postgres import PostgresBackend
 from permission_graph.structs import (
     Action,
     Actor,

@@ -5,17 +5,6 @@ from typing import Self
 
 from pydantic import BaseModel, Field
 
-# class ResourceType(BaseModel):
-#     """A type of resource, with a fixed set of actions.
-
-#     Attributes:
-#         name: The name of the resource type
-#         actions: A list of actions each resource of this type supports
-#     """
-
-#     name: str
-#     actions: list[str]
-
 
 class Vertex(BaseModel):
     """A vertex in the permission graph."""

@@ -18,6 +18,10 @@ license = {file = "LICENSE"}
 Respository = "https://github.com/graydenshand/permission-graph/"
 Documentation = "https://graydenshand.github.io/permission-graph/"
 
+[project.optional-dependencies]
+postgres = [
+    "psycopg2>=2.9.9",
+]
 [build-system]
 requires = ["pdm-backend"]
 build-backend = "pdm.backend"

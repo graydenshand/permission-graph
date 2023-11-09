@@ -113,15 +113,7 @@ class IGraphMemoryBackend(PermissionGraphBackend):
 
     def vertex_factory(self, vertex_id) -> Vertex:
         """Return a vertex from a vertex id."""
-        vtype_map = {
-            "actor": Actor,
-            "resource": Resource,
-            "action": Action,
-            "group": Group,
-            "resource_type": ResourceType,
-        }
-        vtype = vertex_id.split(":")[0]
         v = self._get_igraph_vertex(vertex_id)
         attributes = v.attributes()
         attributes = {k: v for k, v in v.attributes().items() if k not in ("vtype", "name") and v is not None}
-        return vtype_map[vtype].from_id(vertex_id, **attributes)
+        return Vertex.factory(vertex_id, **attributes)

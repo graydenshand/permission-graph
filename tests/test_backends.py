@@ -1,3 +1,6 @@
+import uuid
+
+import psycopg2
 import pytest
 
 from permission_graph.backends.base import PermissionGraphBackend
@@ -14,9 +17,41 @@ from permission_graph.structs import (
 )
 
 
-@pytest.fixture(params=[pytest.param(IGraphMemoryBackend, id="igraph")])
+@pytest.fixture(
+    params=[
+        pytest.param((IGraphMemoryBackend, ()), id="igraph"),
+        pytest.param((PostgresBackend, (f"postgresql:///{uuid.uuid4().hex}",)), id="postgres"),
+    ]
+)
 def backend(request):
-    return request.param()
+    backend_class, init_args = request.param
+    b = backend_class(*init_args)
+
+    # Create new pg database
+    if backend_class == PostgresBackend:
+        db_name = init_args[0].split("/")[-1]
+        conn = psycopg2.connect("postgresql:///")
+        try:
+            conn.autocommit = True
+            with conn.cursor() as cursor:
+                cursor.execute(f'CREATE DATABASE "{db_name}"')
+        finally:
+            conn.close()
+        b.init_db()
+
+    # yield to test
+    yield b
+
+    # Destroy pg database
+    if backend_class == PostgresBackend:
+        db_name = init_args[0].split("/")[-1]
+        conn = psycopg2.connect("postgresql:///")
+        try:
+            conn.autocommit = True
+            with conn.cursor() as cursor:
+                cursor.execute(f'DROP DATABASE "{db_name}"')
+        finally:
+            conn.close()
 
 
 @pytest.fixture

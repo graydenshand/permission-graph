@@ -1,7 +1,7 @@
 import json
 from typing import Any
 
-from psycopg2 import connect
+import psycopg2
 
 from permission_graph.backends.base import PermissionGraphBackend
 from permission_graph.structs import (
@@ -24,11 +24,14 @@ class PostgresBackend(PermissionGraphBackend):
         """Execute a series of SQL queries as a transaction, return result of last query."""
         if len(sql) != len(params):
             raise ValueError("Number of sql queries does not match number of parameter groups.")
-        with connect(self.conn_string) as conn:
+        with psycopg2.connect(self.conn_string) as conn:
             with conn.cursor() as cursor:
                 for i in range(len(sql)):
                     cursor.execute(sql[i], params[i])
-                results = cursor.fetchall()
+                try:
+                    results = cursor.fetchall()
+                except psycopg2.ProgrammingError:
+                    results = []
             conn.commit()
             return results
 
@@ -43,7 +46,10 @@ class PostgresBackend(PermissionGraphBackend):
         """
         sql = "INSERT INTO vertices (id, vtype, attrs) VALUES (%s, %s, %s);"
         params = (vertex.id, vertex.vtype, json.dumps(kwargs))
-        self._execute_query(sql, params)
+        try:
+            self._execute_query(sql, params)
+        except psycopg2.errors.UniqueViolation:
+            raise ValueError("Vertex already exists")
 
     def remove_vertex(self, vertex: Vertex, **kwargs) -> None:
         """Remove a vertex from the permission graph."""
@@ -105,8 +111,11 @@ class PostgresBackend(PermissionGraphBackend):
         Raises ValueError if an edge from source to target already exists.
         """
         sql = "INSERT INTO edges (source_v, target_v, etype) VALUES (%s, %s, %s);"
-        params = (source.id, target.id, etype)
-        self._execute_query(sql, params)
+        params = (source.id, target.id, etype.value)
+        try:
+            self._execute_query(sql, params)
+        except psycopg2.errors.UniqueViolation:
+            raise ValueError("Edge already exists")
 
     def edge_exists(self, source: Vertex, target: Vertex) -> bool:
         """Return True if edge exists."""
@@ -117,7 +126,7 @@ class PostgresBackend(PermissionGraphBackend):
 
     def remove_edge(self, source: Vertex, target: Vertex) -> None:
         """Remove an edge from the permission graph."""
-        sql = "DELETE FROM edges HWERE source_v = %s AND target_v = %s;"
+        sql = "DELETE FROM edges WHERE source_v = %s AND target_v = %s;"
         params = (source.id, target.id)
         self._execute_query(sql, params)
 
@@ -141,7 +150,7 @@ class PostgresBackend(PermissionGraphBackend):
         ),
         ranked(path, rank) AS (
             SELECT path,
-            rank() OVER (ORDER BY ARRAY_LENGTH(path, 1) DESC) as rank
+            rank() OVER (ORDER BY ARRAY_LENGTH(path, 1)) as rank
             FROM connected
             WHERE path[array_upper(path, 1)] = %(target)s
         )
@@ -167,16 +176,46 @@ class PostgresBackend(PermissionGraphBackend):
         results = self._execute_query(sql, params)
         if len(results) == 0:
             raise ValueError("Edge not found")
-        return results[0][0]
+        return EdgeType(results[0][0])
 
     def vertex_factory(self, vertex_id) -> Vertex:
         """Return a vertex from a vertex id.
 
         Given a vertex id, return an vertex object of the appropriate subclass.
         """
-        sql = "SELECT attributes FROM vertices WHERE id = %s;"
+        sql = "SELECT attrs FROM vertices WHERE id = %s;"
         params = (vertex_id,)
         results = self._execute_query(sql, params)
         if len(results) == 0:
             raise ValueError("Vertex not found")
         return Vertex.factory(vertex_id, **results[0][0])
+
+    def init_db(self):
+        """Initialize a database with perimission graph tables."""
+        sql = []
+
+        sql.append("CREATE TYPE vtype AS ENUM ('actor', 'group', 'resource', 'resource_type', 'action');")
+
+        sql.append("CREATE TYPE etype AS ENUM ('MEMBER_OF', 'ALLOW', 'DENY');")
+
+        sql.append(
+            """\
+        CREATE TABLE vertices (
+            id TEXT PRIMARY KEY,
+            vtype vtype NOT NULL,
+            attrs JSONB
+        );"""
+        )
+
+        sql.append(
+            """\
+        CREATE TABLE edges (
+            source_v TEXT REFERENCES vertices(id) ON DELETE CASCADE,
+            target_v TEXT REFERENCES vertices(id) ON DELETE CASCADE,
+            etype etype NOT NULL,
+            PRIMARY KEY (source_v, target_v)
+        );"""
+        )
+
+        params = [tuple()] * len(sql)
+        self._execute_queries(sql, params)

@@ -30,7 +30,13 @@ class Vertex(BaseModel):
             vtype: The type of the vertex (`user`, `action`, `group`, `resource`)
             vertex_id: The id of the vertex
         """
-        vtype_map = {"actor": Actor, "resource": Resource, "action": Action, "group": Group}
+        vtype_map = {
+            "actor": Actor,
+            "resource": Resource,
+            "action": Action,
+            "group": Group,
+            "resource_type": ResourceType,
+        }
         vtype = vertex_id.split(":")[0]
         return vtype_map[vtype].from_id(vertex_id, **kwargs)
 
